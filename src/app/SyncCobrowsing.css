@@ -1,0 +1,31 @@
+.card {
+  margin-bottom: 10px;
+}
+
+.container {
+  max-width: 1280px;
+  width: 100%;
+}
+
+.input-group-text {
+  min-width: 10em;
+}
+
+.floating-badge {
+  position: absolute;
+  opacity: 0.5;
+}
+
+.badge {
+  margin-right: 5px;
+}
+
+.dot {
+  height: 20px;
+  width: 20px;
+  position: absolute;
+  background-color: #f00;
+  border-radius: 50%;
+  display: inline-block;
+  opacity: 0.3;
+}
