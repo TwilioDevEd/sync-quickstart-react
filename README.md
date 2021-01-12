@@ -36,9 +36,9 @@ Replace the placeholder values in the `.env` file with the appropriate values fr
 `TWILIO_CHAT_SERVICE_SID` | Sync Service | [Generate one in the Twilio Sync console](https://www.twilio.com/console/sync/services)
 
 
-### Run `yarn install`
+### Run `npm install`
 
-Run the `yarn install` command to download the Javascript dependencies for the project.
+Run the `npm install` command to download the Javascript dependencies for the project.
 
 ## Running the Quickstart in Development Mode
 
@@ -46,7 +46,7 @@ To run the quickstart in development node, you will need to run two commands, in
 
 `node server.js`
 
-`yarn start`
+`npm start`
 
 Watch for any errors in the command line for either one of these applications when they start.
 
