@@ -33,7 +33,7 @@ Replace the placeholder values in the `.env` file with the appropriate values fr
 `TWILIO_ACCOUNT_SID` | Your primary Twilio account identifier - find this [in the console here](https://www.twilio.com/console).
 `TWILIO_API_KEY` | Used to authenticate - [generate one here](https://www.twilio.com/console/dev-tools/api-keys).
 `TWILIO_API_SECRET` | Used to authenticate - [just like the above, you'll get one here](https://www.twilio.com/console/dev-tools/api-keys).
-`TWILIO_CHAT_SERVICE_SID` | Sync Service | [Generate one in the Twilio Sync console](https://www.twilio.com/console/sync/services)
+`TWILIO_SYNC_SERVICE_SID` | Sync Service | [Generate one in the Twilio Sync console](https://www.twilio.com/console/sync/services)
 
 
 ### Run `npm install`
