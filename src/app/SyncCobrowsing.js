@@ -27,6 +27,10 @@ class SyncCobrowsing extends React.Component {
     this.retrieveToken(this.props.identity);
   }
 
+  componentWillUnmount() {
+    this.removeParticipant(this.props.identity);
+  }
+
   async retrieveToken(identity) {
     let result = await axios.get('/token/' + this.props.identity);
     let accessToken = result.data.token;
@@ -68,6 +72,18 @@ class SyncCobrowsing extends React.Component {
     });
   }
 
+  removeParticipant(identity) {
+    this.client.map(this.getParticipantsKey()).then(function(map) {
+      map.remove(identity)
+        .then(function() {
+          console.log('Participant ' + identity + ' removed.');
+        })
+        .catch(function(error) {
+          console.error('Error removing: ' + identity, error);
+        })
+    });
+  }
+
   async subscribeToParticipantsUpdates() {
     var component = this;
     this.client.map(this.getParticipantsKey()).then(function(map) {
@@ -79,7 +95,7 @@ class SyncCobrowsing extends React.Component {
         component.refreshParticipants(map);
       });
 
-      map.on('itemDeleted', function(event) {
+      map.on('itemRemoved', function(event) {
         component.refreshParticipants(map);
       });
       
