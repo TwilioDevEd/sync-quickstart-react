@@ -106,7 +106,7 @@ class SyncCobrowsing extends React.Component {
     this.getAllItems(map).then(items => {
       var participants = [];
       items.forEach(item => {
-        participants.push(item.value);
+        participants.push(item.data);
       });
       console.log('participants', participants);
       this.setState({participants: participants});
@@ -160,12 +160,12 @@ class SyncCobrowsing extends React.Component {
     let component = this;
 
     this.client.document(this.props.sessionId).then(function(doc) {
-      component.setState({formData: doc.value});
+      component.setState({formData: doc.data});
 
       doc.on("updated",function(data) {
         console.log('Sync Updated Data', data);
         if (!data.isLocal) {
-          component.setState({formData: data.value});
+          component.setState({formData: data.data});
         }
       });
     
