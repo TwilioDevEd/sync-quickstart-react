@@ -5,6 +5,7 @@ import SyncClient from 'twilio-sync';
 import axios from 'axios';
 
 import Participants from './Participants.js'
+import SyncedInputField from './SyncedInputField';
 
 class SyncCobrowsing extends React.Component {
   constructor(props) {
@@ -20,6 +21,8 @@ class SyncCobrowsing extends React.Component {
         subscribeToMailingList: false
       }
     };
+
+    this.setFormValue = this.setFormValue.bind(this);
   }
 
   componentDidMount() {
@@ -165,6 +168,7 @@ class SyncCobrowsing extends React.Component {
       doc.on("updated",function(data) {
         console.log('Sync Updated Data', data);
         if (!data.isLocal) {
+          console.log('Setting state with', data.data);
           component.setState({formData: data.data});
         }
       });
@@ -211,6 +215,13 @@ class SyncCobrowsing extends React.Component {
                         this.setFormValue('lastName',e.target.value);
                       }}
                       id="lastName" type="text" defaultValue={this.state.formData.lastName} className="form-control cb-input" placeholder="Last Name"/>
+                    </div>
+                    <div className="input-group mb-3">
+                      <SyncedInputField
+                        setFormValue={this.setFormValue}
+                        formDataKey="lastName" 
+                        formDataValue={this.state.formData['lastName']} 
+                        placeholder="Last Name"/>
                     </div>
                 </div>
             </div>
