@@ -197,24 +197,12 @@ class SyncCobrowsing extends React.Component {
             </div>
             <div className="card border-primary">
                 <div className="card-header text-info">
-                  <div className="input-group mb-3">
-                      <input onFocus={(e) => {
-                        console.log('onFocus');
-                      }}
-                      onBlur={(e) => {
-                        this.setFormValue('firstName',e.target.value);
-                      }}
-                      
-                      id="firstName" type="text" defaultValue={this.state.formData.firstName} className="form-control cb-input" placeholder="First Name"/>
-                    </div>
                     <div className="input-group mb-3">
-                      <input onFocus={(e) => {
-                        console.log('onFocus');
-                      }}
-                      onBlur={(e) => {
-                        this.setFormValue('lastName',e.target.value);
-                      }}
-                      id="lastName" type="text" defaultValue={this.state.formData.lastName} className="form-control cb-input" placeholder="Last Name"/>
+                      <SyncedInputField
+                        setFormValue={this.setFormValue}
+                        formDataKey="firstName" 
+                        formDataValue={this.state.formData['firstName']} 
+                        placeholder="First Name"/>
                     </div>
                     <div className="input-group mb-3">
                       <SyncedInputField

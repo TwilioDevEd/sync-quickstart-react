@@ -10,19 +10,23 @@ class SyncedInputField extends React.Component {
   }
 
   render() {
+    //console.log('rendering synced input field', this.props);
+    let inputKey = this.state.isFocused ? 'focused-' + this.props.formDataKey : 'unfocused-' + this.props.formDataKey; 
+
     return (
-      <input onFocus={(e) => {
-        console.log('onFocus');
+      <input key={inputKey} onFocus={(e) => {
         this.setState({isFocused: true})
       }}
       onBlur={(e) => {
-        console.log('onBlur');
         this.setState({isFocused: false})
         this.props.setFormValue(this.props.formDataKey,e.target.value);
       }}
       id={this.props.formDataKey} 
-      type="text" 
-      defaultValue={this.props.formDataValue}
+      type="text"
+      onChange={(e) => {
+        this.props.setFormValue(this.props.formDataKey,e.target.value);
+      }}
+      value={this.state.isFocused ? undefined : this.props.formDataValue}
       className="form-control cb-input" 
       placeholder={this.props.placeholder}/>
     )
