@@ -28,7 +28,7 @@ class SyncedInputField extends React.Component {
         onChange={(e) => {
           this.props.setFormValue(this.props.formDataKey, e.target.value);
         }}
-        value={this.state.isFocused ? undefined : this.props.formDataValue}
+        value={this.props.formDataValue}
         className="form-control cb-input"
         placeholder={this.props.placeholder}
       />
