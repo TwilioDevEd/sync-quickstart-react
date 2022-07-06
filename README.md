@@ -1,6 +1,6 @@
 # Twilio Sync JS Quickstart with React
 
-This is an example project for [Twilio Sync](https://www.twilio.com/docs/sync) that uses Javascript and React. 
+This is an example project for [Twilio Sync](https://www.twilio.com/docs/sync) that uses Javascript and React.
 
 This application shows you how you might implement cobrowsing in a React application with Twilio Sync. For instance, a customer could be talking to a customer service agent over a voice connection for help filling out a form on a web application. After starting a cobrowsing session, both the agent and the customer can edit and modify the form in real time.
 
@@ -18,7 +18,7 @@ If you need to create a Twilio account, you can sign up here: [Try Twilio](https
 
 ## Steps to Run the Application
 
-Before you can run the application, you need to fill in your Twilio credentials, and provide a Sync Service id to work with. 
+Before you can run the application, you need to fill in your Twilio credentials, and provide a Sync Service id to work with.
 
 ### Create a .env file
 
@@ -42,13 +42,11 @@ Run the `npm install` command to download the Javascript dependencies for the pr
 
 ## Running the Quickstart in Development Mode
 
-To run the quickstart in development node, you will need to run two commands, in two different command windows. Run them in this order:
-
-`node server.js`
+To run the quickstart in development node, run the following command:
 
 `npm start`
 
-Watch for any errors in the command line for either one of these applications when they start.
+Watch for any errors in the command line as they start.
 
 Your web browser will open up to (http://localhost:3000/) with the React app.
 
