@@ -17,8 +17,6 @@ class SyncCobrowsing extends React.Component {
       formData: {
         firstName: "",
         lastName: "",
-        phoneNumber: "",
-        subscribeToMailingList: false,
       },
     };
 
