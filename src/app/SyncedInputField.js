@@ -9,7 +9,6 @@ class SyncedInputField extends React.Component {
   }
 
   render() {
-    //console.log('rendering synced input field', this.props);
     let inputKey = this.state.isFocused
       ? "focused-" + this.props.formDataKey
       : "unfocused-" + this.props.formDataKey;
