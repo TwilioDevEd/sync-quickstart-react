@@ -17,10 +17,10 @@ export default function SyncCobrowsing({ identity, sessionId }) {
   });
 
   const clientRef = useRef();
-  const cleanupRef = useRef();
 
   useEffect(() => {
     let client = clientRef.current;
+    let cleanupFuncs = [];
 
     // Token and Sync client handling
     async function retrieveToken() {
@@ -46,12 +46,16 @@ export default function SyncCobrowsing({ identity, sessionId }) {
       client.document(sessionId).then((doc) => {
         setFormData(doc.data);
 
-        doc.on("updated", (event) => {
+        doc.addListener("updated", (event) => {
           console.log("Sync Updated Data", event);
           if (!event.isLocal) {
             console.log("Setting state with", event.data);
             setFormData(event.data);
           }
+        });
+
+        cleanupFuncs.push(() => {
+          doc.removeAllListeners();
         });
       });
     }
@@ -99,7 +103,7 @@ export default function SyncCobrowsing({ identity, sessionId }) {
           });
       });
 
-      cleanupRef.current = () => {
+      cleanupFuncs.push(() => {
         map
           .removeAllListeners()
           .remove(identity)
@@ -109,7 +113,7 @@ export default function SyncCobrowsing({ identity, sessionId }) {
           .catch((error) => {
             console.error("Error removing: " + identity, error);
           });
-      };
+      });
     }
 
     function createSyncClient(token) {
@@ -138,9 +142,7 @@ export default function SyncCobrowsing({ identity, sessionId }) {
 
     // return cleanup function
     return () => {
-      if (cleanupRef.current) {
-        cleanupRef.current();
-      }
+      cleanupFuncs.forEach((cleanupFunc) => cleanupFunc());
     };
   }, [identity, sessionId]);
 
