@@ -9,7 +9,7 @@ import SyncedInputField from "./SyncedInputField";
 // React component
 export default function SyncCobrowsing({ identity, sessionId }) {
   const [status, setStatus] = useState("Connecting...");
-  const [, setErrorMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const [participants, setParticipants] = useState([]);
   const [formData, setFormData] = useState({
     firstName: "",
@@ -119,6 +119,7 @@ export default function SyncCobrowsing({ identity, sessionId }) {
           clientRef.current = newClient;
           client = newClient;
           setStatus("connected");
+          setErrorMessage("");
           loadFormData();
           addParticipant();
         } else {
@@ -162,6 +163,12 @@ export default function SyncCobrowsing({ identity, sessionId }) {
         <div className="card border-primary">
           <div className="card-header text-info">
             <span id="status">{status}</span>
+            {errorMessage && (
+              <>
+                <br />
+                <span id="error">{errorMessage}</span>
+              </>
+            )}
           </div>
           <div className="card-header text-info">
             Participants:
