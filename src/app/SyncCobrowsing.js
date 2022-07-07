@@ -37,6 +37,7 @@ export default function SyncCobrowsing({ identity, sessionId }) {
           createSyncClient(accessToken);
         }
       } else {
+        setStatus("error");
         setErrorMessage("No access token found in result");
       }
     }
@@ -114,7 +115,7 @@ export default function SyncCobrowsing({ identity, sessionId }) {
     function createSyncClient(token) {
       const newClient = new SyncClient(token, { logLevel: "info" });
 
-      newClient.on("connectionStateChanged", function (state) {
+      newClient.on("connectionStateChanged", (state) => {
         if (state === "connected") {
           clientRef.current = newClient;
           client = newClient;
@@ -135,6 +136,7 @@ export default function SyncCobrowsing({ identity, sessionId }) {
     // fetch an access token from the localhost server
     retrieveToken();
 
+    // return cleanup function
     return () => {
       if (cleanupRef.current) {
         cleanupRef.current();
