@@ -7,6 +7,11 @@ import axios from "axios";
 import Participants from "./Participants.js";
 import SyncedInputField from "./SyncedInputField";
 
+async function getAccessToken(identity) {
+  const result = await axios.get("/token/" + identity);
+  return result.data.token;
+}
+
 class SyncCobrowsing extends React.Component {
   constructor(props) {
     super(props);
@@ -33,12 +38,11 @@ class SyncCobrowsing extends React.Component {
   }
 
   async retrieveToken(identity) {
-    let result = await axios.get("/token/" + this.props.identity);
-    let accessToken = result.data.token;
+    const accessToken = await getAccessToken(identity);
     if (accessToken != null) {
       if (this.client) {
         // update the sync client with a new access token
-        this.refreshSyncClient(accessToken);
+        this.client.updateToken(accessToken);
       } else {
         // create a new sync client
         this.createSyncClient(accessToken);
@@ -128,10 +132,6 @@ class SyncCobrowsing extends React.Component {
       result.push(...page.items);
     }
     return result;
-  }
-
-  refreshSyncClient(token) {
-    this.client.updateToken(token);
   }
 
   createSyncClient(token) {

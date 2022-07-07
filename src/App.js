@@ -6,9 +6,15 @@ import SyncCobrowsing from "./app/SyncCobrowsing.js";
 class App extends React.Component {
   constructor(props) {
     super(props);
+
+    // Check for identity in query string
+    const params = new Proxy(new URLSearchParams(window.location.search), {
+      get: (searchParams, prop) => searchParams.get(prop),
+    });
+
     this.state = {
       sessionId: "session123",
-      identity: "",
+      identity: params?.identity || "",
       isLoggedIn: false,
     };
   }
