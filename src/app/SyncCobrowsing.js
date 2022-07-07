@@ -12,6 +12,7 @@ async function getAccessToken(identity) {
   return json.token;
 }
 
+// Participant routines
 function addParticipant(client, identity, sessionId, refreshParticipants) {
   let map;
   const participantsMapKey = "participants-" + sessionId;
@@ -53,6 +54,31 @@ function addParticipant(client, identity, sessionId, refreshParticipants) {
   };
 }
 
+// Document routines
+function updateSyncDocument(client, sessionId, formData) {
+  if (!client) {
+    return;
+  }
+  client.document(sessionId).then((doc) => {
+    doc.set(formData);
+  });
+}
+
+function loadFormData(client, sessionId, setFormData) {
+  client.document(sessionId).then((doc) => {
+    setFormData(doc.data);
+
+    doc.on("updated", (event) => {
+      console.log("Sync Updated Data", event);
+      if (!event.isLocal) {
+        console.log("Setting state with", event.data);
+        setFormData(event.data);
+      }
+    });
+  });
+}
+
+// React component
 class SyncCobrowsing extends React.Component {
   constructor(props) {
     super(props);
@@ -99,15 +125,6 @@ class SyncCobrowsing extends React.Component {
     }
   }
 
-  updateSyncDocument(formData) {
-    if (!this.client) {
-      return;
-    }
-    this.client.document(this.props.sessionId).then(function (doc) {
-      doc.set(formData);
-    });
-  }
-
   refreshParticipants(map) {
     this.getAllItems(map).then((items) => {
       var participants = [];
@@ -140,7 +157,9 @@ class SyncCobrowsing extends React.Component {
       if (state === "connected") {
         component.client = client;
         component.setState({ status: "connected" });
-        component.loadFormData();
+        loadFormData(component.client, component.props.sessionId, (data) =>
+          component.setState({ formData: data })
+        );
         component.cleanup = addParticipant(
           client,
           identity,
@@ -162,28 +181,11 @@ class SyncCobrowsing extends React.Component {
     });
   }
 
-  async loadFormData() {
-    let component = this;
-
-    this.client.document(this.props.sessionId).then(function (doc) {
-      component.setState({ formData: doc.data });
-
-      doc.on("updated", function (data) {
-        console.log("Sync Updated Data", data);
-        if (!data.isLocal) {
-          console.log("Setting state with", data.data);
-          component.setState({ formData: data.data });
-        }
-      });
-    });
-  }
-
   setFormValue(fieldName, value) {
     var formData = this.state.formData;
     formData[fieldName] = value;
-    this.setState({ formData: formData }, () =>
-      this.updateSyncDocument(formData)
-    );
+    this.setState({ formData: formData });
+    updateSyncDocument(this.client, this.props.sessionId, formData);
   }
 
   render() {
