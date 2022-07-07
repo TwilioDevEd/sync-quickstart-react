@@ -211,7 +211,6 @@ export default function SyncCobrowsing({ identity, sessionId }) {
   }
 
   function setFormValue(fieldName, value) {
-    console.log("setFormValue", fieldName, value);
     const newFormData = { ...formData, [fieldName]: value };
     updateSyncDocument(clientRef.current, sessionId, newFormData);
     setFormData(newFormData);
@@ -227,7 +226,7 @@ export default function SyncCobrowsing({ identity, sessionId }) {
           <div className="card-header text-info">
             Participants:
             <br />
-            <Participants participants={participants} />
+            <Participants participants={participants} identity={identity} />
           </div>
         </div>
         <div className="card border-primary">
