@@ -2,14 +2,14 @@ import "./SyncCobrowsing.css";
 
 import React from "react";
 import { SyncClient } from "twilio-sync";
-import axios from "axios";
 
 import Participants from "./Participants.js";
 import SyncedInputField from "./SyncedInputField";
 
 async function getAccessToken(identity) {
-  const result = await axios.get("/token/" + identity);
-  return result.data.token;
+  const result = await fetch("/token/" + identity);
+  const json = await result.json();
+  return json.token;
 }
 
 function addParticipant(client, identity, sessionId, refreshParticipants) {
