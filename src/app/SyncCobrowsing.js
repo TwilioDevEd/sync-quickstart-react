@@ -6,12 +6,6 @@ import { SyncClient } from "twilio-sync";
 import Participants from "./Participants.js";
 import SyncedInputField from "./SyncedInputField";
 
-async function getAccessToken(identity) {
-  const result = await fetch("/token/" + identity);
-  const json = await result.json();
-  return json.token;
-}
-
 // Participant routines
 function addParticipant(client, identity, sessionId, refreshParticipants) {
   let map;
@@ -54,6 +48,19 @@ function addParticipant(client, identity, sessionId, refreshParticipants) {
   };
 }
 
+// Since Sync Map has pagination we need to navigate through all the pages
+async function getAllItems(map) {
+  const result = [];
+  let page = await map.getItems();
+  result.push(...page.items);
+
+  while (page.hasNextPage) {
+    page = await page.nextPage();
+    result.push(...page.items);
+  }
+  return result;
+}
+
 // Document routines
 function updateSyncDocument(client, sessionId, formData) {
   if (!client) {
@@ -78,6 +85,84 @@ function loadFormData(client, sessionId, setFormData) {
   });
 }
 
+// Token and Sync service handling
+async function retrieveToken(
+  client,
+  identity,
+  sessionId,
+  setClient,
+  setStatus,
+  setErrorMessage,
+  setFormData,
+  setCleanup,
+  refreshParticipants
+) {
+  const result = await fetch("/token/" + identity);
+  const json = await result.json();
+  const accessToken = json.token;
+
+  if (accessToken != null) {
+    if (client) {
+      // update the sync client with a new access token
+      client.updateToken(accessToken);
+    } else {
+      // create a new sync client
+      createSyncClient(
+        accessToken,
+        identity,
+        sessionId,
+        setClient,
+        setStatus,
+        setErrorMessage,
+        setFormData,
+        setCleanup,
+        refreshParticipants
+      );
+    }
+  } else {
+    setErrorMessage("No access token found in result");
+  }
+}
+
+function createSyncClient(
+  token,
+  identity,
+  sessionId,
+  setClient,
+  setStatus,
+  setErrorMessage,
+  setFormData,
+  setCleanup,
+  refreshParticipants
+) {
+  const client = new SyncClient(token, { logLevel: "info" });
+
+  client.on("connectionStateChanged", function (state) {
+    if (state === "connected") {
+      setClient(client);
+      setStatus("connected");
+      loadFormData(client, sessionId, setFormData);
+      const cleanup = addParticipant(
+        client,
+        identity,
+        sessionId,
+        refreshParticipants
+      );
+      setCleanup(cleanup);
+    } else {
+      setStatus("error");
+      setErrorMessage(`Error: expected connected status but got ${state}`);
+    }
+  });
+
+  function refreshToken() {
+    retrieveToken(client, identity, createSyncClient, setErrorMessage);
+  }
+
+  client.on("tokenAboutToExpire", refreshToken);
+  client.on("tokenExpired", refreshToken);
+}
+
 // React component
 class SyncCobrowsing extends React.Component {
   constructor(props) {
@@ -92,14 +177,49 @@ class SyncCobrowsing extends React.Component {
       },
     };
 
+    this.setClient = this.setClient.bind(this);
     this.setFormValue = this.setFormValue.bind(this);
+    this.setFormData = this.setFormData.bind(this);
+    this.setStatus = this.setStatus.bind(this);
+    this.setErrorMessage = this.setErrorMessage.bind(this);
+    this.setCleanup = this.setCleanup.bind(this);
     this.refreshParticipants = this.refreshParticipants.bind(this);
     this.cleanup = undefined;
   }
 
+  setClient(client) {
+    this.client = client;
+  }
+
+  setFormData(formData) {
+    this.setState({ formData });
+  }
+
+  setStatus(status) {
+    this.setState({ status });
+  }
+
+  setErrorMessage(errorMessage) {
+    this.setState({ errorMessage });
+  }
+
+  setCleanup(cleanup) {
+    this.cleanup = cleanup;
+  }
+
   componentDidMount() {
     // fetch an access token from the localhost server
-    this.retrieveToken(this.props.identity);
+    retrieveToken(
+      this.client,
+      this.props.identity,
+      this.props.sessionId,
+      this.setClient,
+      this.setStatus,
+      this.setErrorMessage,
+      this.setFormData,
+      this.setCleanup,
+      this.refreshParticipants
+    );
   }
 
   componentWillUnmount() {
@@ -110,74 +230,14 @@ class SyncCobrowsing extends React.Component {
     }
   }
 
-  async retrieveToken(identity) {
-    const accessToken = await getAccessToken(identity);
-    if (accessToken != null) {
-      if (this.client) {
-        // update the sync client with a new access token
-        this.client.updateToken(accessToken);
-      } else {
-        // create a new sync client
-        this.createSyncClient(accessToken);
-      }
-    } else {
-      this.setState({ errorMessage: "No access token found in result" });
-    }
-  }
-
   refreshParticipants(map) {
-    this.getAllItems(map).then((items) => {
+    getAllItems(map).then((items) => {
       var participants = [];
       items.forEach((item) => {
         participants.push(item.data);
       });
       console.log("participants", participants);
       this.setState({ participants: participants });
-    });
-  }
-
-  // Since Sync Map has pagination we need to navigate through all the pages
-  async getAllItems(map) {
-    const result = [];
-    let page = await map.getItems();
-    result.push(...page.items);
-
-    while (page.hasNextPage) {
-      page = await page.nextPage();
-      result.push(...page.items);
-    }
-    return result;
-  }
-
-  createSyncClient(token) {
-    const client = new SyncClient(token, { logLevel: "info" });
-    var component = this;
-    let identity = this.props.identity;
-    client.on("connectionStateChanged", function (state) {
-      if (state === "connected") {
-        component.client = client;
-        component.setState({ status: "connected" });
-        loadFormData(component.client, component.props.sessionId, (data) =>
-          component.setState({ formData: data })
-        );
-        component.cleanup = addParticipant(
-          client,
-          identity,
-          component.props.sessionId,
-          component.refreshParticipants
-        );
-      } else {
-        component.setState({
-          status: "error",
-          errorMessage: `Error: expected connected status but got ${state}`,
-        });
-      }
-    });
-    client.on("tokenAboutToExpire", function () {
-      component.retrieveToken(identity);
-    });
-    client.on("tokenExpired", function () {
-      component.retrieveToken(identity);
     });
   }
 
