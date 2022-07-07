@@ -7,22 +7,25 @@ import Participants from "./Participants.js";
 import SyncedInputField from "./SyncedInputField";
 
 // Participant routines
-function addParticipant(client, identity, sessionId, refreshParticipants) {
+function addParticipant(client, identity, sessionId, setParticipants) {
   let map;
   const participantsMapKey = "participants-" + sessionId;
 
   client.map(participantsMapKey).then((participantMap) => {
     map = participantMap;
 
-    function triggerRefresh() {
-      refreshParticipants(map);
+    function refreshParticipants() {
+      getAllItems(map).then((items) => {
+        const newParticipants = items.map((item) => item.data);
+        console.log("participants", newParticipants);
+        setParticipants(newParticipants);
+      });
     }
 
-    map.addListener("itemAdded", triggerRefresh);
-    map.addListener("itemUpdated", triggerRefresh);
-    map.addListener("itemRemoved", triggerRefresh);
-
     map
+      .addListener("itemAdded", refreshParticipants)
+      .addListener("itemUpdated", refreshParticipants)
+      .addListener("itemRemoved", refreshParticipants)
       .set(identity, {
         identity: identity,
       })
@@ -85,84 +88,6 @@ function loadFormData(client, sessionId, setFormData) {
   });
 }
 
-// Token and Sync service handling
-async function retrieveToken(
-  client,
-  identity,
-  sessionId,
-  setClient,
-  setStatus,
-  setErrorMessage,
-  setFormData,
-  setCleanup,
-  refreshParticipants
-) {
-  const result = await fetch("/token/" + identity);
-  const json = await result.json();
-  const accessToken = json.token;
-
-  if (accessToken != null) {
-    if (client) {
-      // update the sync client with a new access token
-      client.updateToken(accessToken);
-    } else {
-      // create a new sync client
-      createSyncClient(
-        accessToken,
-        identity,
-        sessionId,
-        setClient,
-        setStatus,
-        setErrorMessage,
-        setFormData,
-        setCleanup,
-        refreshParticipants
-      );
-    }
-  } else {
-    setErrorMessage("No access token found in result");
-  }
-}
-
-function createSyncClient(
-  token,
-  identity,
-  sessionId,
-  setClient,
-  setStatus,
-  setErrorMessage,
-  setFormData,
-  setCleanup,
-  refreshParticipants
-) {
-  const client = new SyncClient(token, { logLevel: "info" });
-
-  client.on("connectionStateChanged", function (state) {
-    if (state === "connected") {
-      setClient(client);
-      setStatus("connected");
-      loadFormData(client, sessionId, setFormData);
-      const cleanup = addParticipant(
-        client,
-        identity,
-        sessionId,
-        refreshParticipants
-      );
-      setCleanup(cleanup);
-    } else {
-      setStatus("error");
-      setErrorMessage(`Error: expected connected status but got ${state}`);
-    }
-  });
-
-  function refreshToken() {
-    retrieveToken(client, identity, createSyncClient, setErrorMessage);
-  }
-
-  client.on("tokenAboutToExpire", refreshToken);
-  client.on("tokenExpired", refreshToken);
-}
-
 // React component
 export default function SyncCobrowsing({ identity, sessionId }) {
   const [status, setStatus] = useState("Connecting...");
@@ -177,38 +102,60 @@ export default function SyncCobrowsing({ identity, sessionId }) {
   const cleanupRef = useRef();
 
   useEffect(() => {
+    // Token and Sync service handling
+    async function retrieveToken() {
+      const client = clientRef.current;
+      const result = await fetch("/token/" + identity);
+      const json = await result.json();
+      const accessToken = json.token;
+
+      if (accessToken != null) {
+        if (client) {
+          // update the sync client with a new access token
+          client.updateToken(accessToken);
+        } else {
+          // create a new sync client
+          createSyncClient(accessToken);
+        }
+      } else {
+        setErrorMessage("No access token found in result");
+      }
+    }
+
+    function createSyncClient(token) {
+      const client = new SyncClient(token, { logLevel: "info" });
+
+      client.on("connectionStateChanged", function (state) {
+        if (state === "connected") {
+          clientRef.current = client;
+          setStatus("connected");
+          loadFormData(client, sessionId, setFormData);
+          const cleanup = addParticipant(
+            client,
+            identity,
+            sessionId,
+            setParticipants
+          );
+          cleanupRef.current = cleanup;
+        } else {
+          setStatus("error");
+          setErrorMessage(`Error: expected connected status but got ${state}`);
+        }
+      });
+
+      client.on("tokenAboutToExpire", retrieveToken);
+      client.on("tokenExpired", retrieveToken);
+    }
+
     // fetch an access token from the localhost server
-    retrieveToken(
-      clientRef.current,
-      identity,
-      sessionId,
-      (client) => (clientRef.current = client),
-      setStatus,
-      setErrorMessage,
-      setFormData,
-      (cleanup) => (cleanupRef.current = cleanup),
-      refreshParticipants
-    );
+    retrieveToken();
 
     return () => {
-      console.log("will unmount");
       if (cleanupRef.current) {
-        console.log("calling cleanup");
         cleanupRef.current();
       }
     };
   }, [identity, sessionId]);
-
-  function refreshParticipants(map) {
-    getAllItems(map).then((items) => {
-      var participants = [];
-      items.forEach((item) => {
-        participants.push(item.data);
-      });
-      console.log("participants", participants);
-      setParticipants(participants);
-    });
-  }
 
   function setFormValue(fieldName, value) {
     const newFormData = { ...formData, [fieldName]: value };
