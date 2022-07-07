@@ -20,9 +20,10 @@ export default function SyncCobrowsing({ identity, sessionId }) {
   const cleanupRef = useRef();
 
   useEffect(() => {
-    // Token and Sync service handling
+    let client = clientRef.current;
+
+    // Token and Sync client handling
     async function retrieveToken() {
-      const client = clientRef.current;
       const result = await fetch("/token/" + identity);
       const json = await result.json();
       const accessToken = json.token;
@@ -41,7 +42,7 @@ export default function SyncCobrowsing({ identity, sessionId }) {
     }
 
     function loadFormData() {
-      clientRef.current.document(sessionId).then((doc) => {
+      client.document(sessionId).then((doc) => {
         setFormData(doc.data);
 
         doc.on("updated", (event) => {
@@ -58,7 +59,7 @@ export default function SyncCobrowsing({ identity, sessionId }) {
       let map;
       const participantsMapKey = "participants-" + sessionId;
 
-      clientRef.current.map(participantsMapKey).then((participantMap) => {
+      client.map(participantsMapKey).then((participantMap) => {
         map = participantMap;
 
         // Since Sync Map has pagination we need to navigate through all the pages
@@ -111,11 +112,12 @@ export default function SyncCobrowsing({ identity, sessionId }) {
     }
 
     function createSyncClient(token) {
-      const client = new SyncClient(token, { logLevel: "info" });
+      const newClient = new SyncClient(token, { logLevel: "info" });
 
-      client.on("connectionStateChanged", function (state) {
+      newClient.on("connectionStateChanged", function (state) {
         if (state === "connected") {
-          clientRef.current = client;
+          clientRef.current = newClient;
+          client = newClient;
           setStatus("connected");
           loadFormData();
           addParticipant();
@@ -125,8 +127,8 @@ export default function SyncCobrowsing({ identity, sessionId }) {
         }
       });
 
-      client.on("tokenAboutToExpire", retrieveToken);
-      client.on("tokenExpired", retrieveToken);
+      newClient.on("tokenAboutToExpire", retrieveToken);
+      newClient.on("tokenExpired", retrieveToken);
     }
 
     // fetch an access token from the localhost server
@@ -140,10 +142,10 @@ export default function SyncCobrowsing({ identity, sessionId }) {
   }, [identity, sessionId]);
 
   function updateSyncDocument(newFormData) {
-    if (!clientRef.current) {
-      return;
-    }
-    clientRef.current.document(sessionId).then((doc) => {
+    const client = clientRef.current;
+    if (!client) return;
+
+    client.document(sessionId).then((doc) => {
       doc.set(newFormData);
     });
   }
