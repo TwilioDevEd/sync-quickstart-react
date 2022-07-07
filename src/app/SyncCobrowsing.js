@@ -1,6 +1,6 @@
 import "./SyncCobrowsing.css";
 
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { SyncClient } from "twilio-sync";
 
 import Participants from "./Participants.js";
@@ -164,130 +164,95 @@ function createSyncClient(
 }
 
 // React component
-class SyncCobrowsing extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      status: "Connecting...",
-      errorMessage: "",
-      participants: [],
-      formData: {
-        firstName: "",
-        lastName: "",
-      },
-    };
+export default function SyncCobrowsing({ identity, sessionId }) {
+  const [status, setStatus] = useState("Connecting...");
+  const [, setErrorMessage] = useState("");
+  const [participants, setParticipants] = useState([]);
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+  });
 
-    this.setClient = this.setClient.bind(this);
-    this.setFormValue = this.setFormValue.bind(this);
-    this.setFormData = this.setFormData.bind(this);
-    this.setStatus = this.setStatus.bind(this);
-    this.setErrorMessage = this.setErrorMessage.bind(this);
-    this.setCleanup = this.setCleanup.bind(this);
-    this.refreshParticipants = this.refreshParticipants.bind(this);
-    this.cleanup = undefined;
-  }
+  const clientRef = useRef();
+  const cleanupRef = useRef();
 
-  setClient(client) {
-    this.client = client;
-  }
-
-  setFormData(formData) {
-    this.setState({ formData });
-  }
-
-  setStatus(status) {
-    this.setState({ status });
-  }
-
-  setErrorMessage(errorMessage) {
-    this.setState({ errorMessage });
-  }
-
-  setCleanup(cleanup) {
-    this.cleanup = cleanup;
-  }
-
-  componentDidMount() {
+  useEffect(() => {
     // fetch an access token from the localhost server
     retrieveToken(
-      this.client,
-      this.props.identity,
-      this.props.sessionId,
-      this.setClient,
-      this.setStatus,
-      this.setErrorMessage,
-      this.setFormData,
-      this.setCleanup,
-      this.refreshParticipants
+      clientRef.current,
+      identity,
+      sessionId,
+      (client) => (clientRef.current = client),
+      setStatus,
+      setErrorMessage,
+      setFormData,
+      (cleanup) => (cleanupRef.current = cleanup),
+      refreshParticipants
     );
-  }
 
-  componentWillUnmount() {
-    console.log("will unmount");
-    if (this.cleanup) {
-      console.log("calling cleanup");
-      this.cleanup();
-    }
-  }
+    return () => {
+      console.log("will unmount");
+      if (cleanupRef.current) {
+        console.log("calling cleanup");
+        cleanupRef.current();
+      }
+    };
+  }, [identity, sessionId]);
 
-  refreshParticipants(map) {
+  function refreshParticipants(map) {
     getAllItems(map).then((items) => {
       var participants = [];
       items.forEach((item) => {
         participants.push(item.data);
       });
       console.log("participants", participants);
-      this.setState({ participants: participants });
+      setParticipants(participants);
     });
   }
 
-  setFormValue(fieldName, value) {
-    var formData = this.state.formData;
-    formData[fieldName] = value;
-    this.setState({ formData: formData });
-    updateSyncDocument(this.client, this.props.sessionId, formData);
+  function setFormValue(fieldName, value) {
+    console.log("setFormValue", fieldName, value);
+    const newFormData = { ...formData, [fieldName]: value };
+    updateSyncDocument(clientRef.current, sessionId, newFormData);
+    setFormData(newFormData);
   }
 
-  render() {
-    return (
-      <>
-        <div className="container">
-          <div className="card border-primary">
-            <div className="card-header text-info">
-              <span id="status">{this.state.status}</span>
-            </div>
-            <div className="card-header text-info">
-              Participants:
-              <br />
-              <Participants participants={this.state.participants} />
-            </div>
+  return (
+    <>
+      <div className="container">
+        <div className="card border-primary">
+          <div className="card-header text-info">
+            <span id="status">{status}</span>
           </div>
-          <div className="card border-primary">
-            <div className="card-header text-info">
-              <div className="input-group mb-3">
-                <SyncedInputField
-                  setFormValue={this.setFormValue}
-                  formDataKey="firstName"
-                  formDataValue={this.state.formData["firstName"]}
-                  placeholder="First Name"
-                />
-              </div>
-              <div className="input-group mb-3">
-                <SyncedInputField
-                  setFormValue={this.setFormValue}
-                  formDataKey="lastName"
-                  formDataValue={this.state.formData["lastName"]}
-                  placeholder="Last Name"
-                />
-              </div>
+          <div className="card-header text-info">
+            Participants:
+            <br />
+            <Participants participants={participants} />
+          </div>
+        </div>
+        <div className="card border-primary">
+          <div className="card-header text-info">
+            <div className="input-group mb-3">
+              <SyncedInputField
+                setFormValue={setFormValue}
+                formDataKey="firstName"
+                formDataValue={formData["firstName"]}
+                placeholder="First Name"
+              />
+            </div>
+            <div className="input-group mb-3">
+              <SyncedInputField
+                setFormValue={setFormValue}
+                formDataKey="lastName"
+                formDataValue={formData["lastName"]}
+                placeholder="Last Name"
+              />
             </div>
           </div>
         </div>
-        <span id="floating-badges"></span>
-        <span id="signals"></span>
-      </>
-    );
-  }
+      </div>
+      <span id="floating-badges"></span>
+      <span id="signals"></span>
+    </>
+  );
 }
-
-export default SyncCobrowsing;
