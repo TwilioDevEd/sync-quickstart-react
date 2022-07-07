@@ -12,6 +12,47 @@ async function getAccessToken(identity) {
   return result.data.token;
 }
 
+function addParticipant(client, identity, sessionId, refreshParticipants) {
+  let map;
+  const participantsMapKey = "participants-" + sessionId;
+
+  client.map(participantsMapKey).then((participantMap) => {
+    map = participantMap;
+
+    function triggerRefresh() {
+      refreshParticipants(map);
+    }
+
+    map.addListener("itemAdded", triggerRefresh);
+    map.addListener("itemUpdated", triggerRefresh);
+    map.addListener("itemRemoved", triggerRefresh);
+
+    map
+      .set(identity, {
+        identity: identity,
+      })
+      .then((item) => {
+        console.log("Added: ", item.key);
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  });
+
+  // Return a cleanup function
+  return () => {
+    map
+      .removeAllListeners()
+      .remove(identity)
+      .then(() => {
+        console.log("Participant " + identity + " removed.");
+      })
+      .catch((error) => {
+        console.error("Error removing: " + identity, error);
+      });
+  };
+}
+
 class SyncCobrowsing extends React.Component {
   constructor(props) {
     super(props);
@@ -26,6 +67,8 @@ class SyncCobrowsing extends React.Component {
     };
 
     this.setFormValue = this.setFormValue.bind(this);
+    this.refreshParticipants = this.refreshParticipants.bind(this);
+    this.cleanup = undefined;
   }
 
   componentDidMount() {
@@ -34,7 +77,11 @@ class SyncCobrowsing extends React.Component {
   }
 
   componentWillUnmount() {
-    this.removeParticipant(this.props.identity);
+    console.log("will unmount");
+    if (this.cleanup) {
+      console.log("calling cleanup");
+      this.cleanup();
+    }
   }
 
   async retrieveToken(identity) {
@@ -58,55 +105,6 @@ class SyncCobrowsing extends React.Component {
     }
     this.client.document(this.props.sessionId).then(function (doc) {
       doc.set(formData);
-    });
-  }
-
-  getParticipantsKey() {
-    return "participants-" + this.props.sessionId;
-  }
-
-  addParticipant(identity) {
-    this.client.map(this.getParticipantsKey()).then(function (map) {
-      map
-        .set(identity, {
-          identity: identity,
-        })
-        .then(function (item) {
-          console.log("Added: ", item.key);
-        })
-        .catch(function (err) {
-          console.error(err);
-        });
-    });
-  }
-
-  removeParticipant(identity) {
-    this.client.map(this.getParticipantsKey()).then(function (map) {
-      map
-        .remove(identity)
-        .then(function () {
-          console.log("Participant " + identity + " removed.");
-        })
-        .catch(function (error) {
-          console.error("Error removing: " + identity, error);
-        });
-    });
-  }
-
-  async subscribeToParticipantsUpdates() {
-    var component = this;
-    this.client.map(this.getParticipantsKey()).then(function (map) {
-      map.on("itemAdded", function (event) {
-        component.refreshParticipants(map);
-      });
-
-      map.on("itemUpdated", function (event) {
-        component.refreshParticipants(map);
-      });
-
-      map.on("itemRemoved", function (event) {
-        component.refreshParticipants(map);
-      });
     });
   }
 
@@ -143,8 +141,12 @@ class SyncCobrowsing extends React.Component {
         component.client = client;
         component.setState({ status: "connected" });
         component.loadFormData();
-        component.subscribeToParticipantsUpdates();
-        component.addParticipant(identity);
+        component.cleanup = addParticipant(
+          client,
+          identity,
+          component.props.sessionId,
+          component.refreshParticipants
+        );
       } else {
         component.setState({
           status: "error",
@@ -186,7 +188,7 @@ class SyncCobrowsing extends React.Component {
 
   render() {
     return (
-      <React.Fragment>
+      <>
         <div className="container">
           <div className="card border-primary">
             <div className="card-header text-info">
@@ -221,7 +223,7 @@ class SyncCobrowsing extends React.Component {
         </div>
         <span id="floating-badges"></span>
         <span id="signals"></span>
-      </React.Fragment>
+      </>
     );
   }
 }
