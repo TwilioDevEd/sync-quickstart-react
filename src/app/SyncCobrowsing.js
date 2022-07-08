@@ -1,46 +1,22 @@
 import "./SyncCobrowsing.css";
 
-import React, { useState, useEffect, useRef } from "react";
-import { SyncClient } from "twilio-sync";
+import React, { useState, useEffect } from "react";
 
 import Participants from "./Participants.js";
 import SyncedInputField from "./SyncedInputField";
+import useSyncClient from "../hooks/useSyncClient";
 
 // React component
 export default function SyncCobrowsing({ identity, sessionId }) {
-  const [status, setStatus] = useState("Connecting...");
-  const [errorMessage, setErrorMessage] = useState("");
+  const { client, status, errorMessage } = useSyncClient(identity);
   const [participants, setParticipants] = useState([]);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
   });
 
-  const clientRef = useRef();
-
   useEffect(() => {
-    let client = clientRef.current;
     let cleanupFuncs = [];
-
-    // Token and Sync client handling
-    async function retrieveToken() {
-      const result = await fetch("/token/" + identity);
-      const json = await result.json();
-      const accessToken = json.token;
-
-      if (accessToken != null) {
-        if (client) {
-          // update the sync client with a new access token
-          client.updateToken(accessToken);
-        } else {
-          // create a new sync client
-          createSyncClient(accessToken);
-        }
-      } else {
-        setStatus("error");
-        setErrorMessage("No access token found in result");
-      }
-    }
 
     function loadFormData() {
       client.document(sessionId).then((doc) => {
@@ -116,38 +92,18 @@ export default function SyncCobrowsing({ identity, sessionId }) {
       });
     }
 
-    function createSyncClient(token) {
-      const newClient = new SyncClient(token, { logLevel: "info" });
+    if (status === "connected") {
+      loadFormData();
+      addParticipant();
 
-      newClient.on("connectionStateChanged", (state) => {
-        if (state === "connected") {
-          clientRef.current = newClient;
-          client = newClient;
-          setStatus("connected");
-          setErrorMessage("");
-          loadFormData();
-          addParticipant();
-        } else {
-          setStatus("error");
-          setErrorMessage(`Error: expected connected status but got ${state}`);
-        }
-      });
-
-      newClient.on("tokenAboutToExpire", retrieveToken);
-      newClient.on("tokenExpired", retrieveToken);
+      // return cleanup function
+      return () => {
+        cleanupFuncs.forEach((cleanupFunc) => cleanupFunc());
+      };
     }
-
-    // fetch an access token from the localhost server
-    retrieveToken();
-
-    // return cleanup function
-    return () => {
-      cleanupFuncs.forEach((cleanupFunc) => cleanupFunc());
-    };
-  }, [identity, sessionId]);
+  }, [status, client, sessionId, identity]);
 
   function updateSyncDocument(newFormData) {
-    const client = clientRef.current;
     if (!client) return;
 
     client.document(sessionId).then((doc) => {
