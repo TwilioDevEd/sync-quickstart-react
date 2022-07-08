@@ -4,9 +4,6 @@ const path = require("path");
 const app = express();
 const tokenGenerator = require("./token_generator");
 
-// load configuration from .env if available
-require("dotenv").config();
-
 app.use(express.static(path.join(__dirname, "build")));
 
 app.use(bodyParser.urlencoded({ extended: true }));
