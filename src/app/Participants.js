@@ -1,16 +1,19 @@
-import React from 'react';
+import "./Participants.css";
 
-class Participants extends React.Component {
+import React from "react";
 
-  render() {
-    let participants = this.props.participants.map(participant => 
-      <span key={participant.identity ? participant.identity : 'none'}>{participant.identity} </span>
-    );
-
-    return (
-      <div>{participants}</div>
-    )
-  }
+export default function Participants({ participants, identity }) {
+  return (
+    <div>
+      {participants.map((participant, index) => (
+        <span
+          key={participant.identity ? participant.identity : "none"}
+          className={participant.identity === identity ? "self" : ""}
+        >
+          {participant.identity}
+          {index < participants.length - 1 && ", "}
+        </span>
+      ))}
+    </div>
+  );
 }
-
-export default Participants;
