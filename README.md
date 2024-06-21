@@ -10,7 +10,7 @@ You can use this application as the base for your own cobrowsing projects, or yo
 
 ## Prerequisites
 
-You need a recent version of Node.js, as well as a Twilio account.
+You need Node.js version 16.20.2 or older; newer versions are not supported, as well as a Twilio account.
 
 For more on how to install Node.js, see [How to set up your Node.js Development Environment](https://www.twilio.com/docs/usage/tutorials/how-to-set-up-your-node-js-and-express-development-environment).
 
